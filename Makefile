@@ -1,10 +1,14 @@
 # Digital UNIX 4.0 compilation flags:
-CFLAGS=-std1 -pthread -g -w1 $(DEBUGFLAGS)
-RTFLAGS=-lrt
+#CFLAGS=-std1 -pthread -g -w1 $(DEBUGFLAGS)
+#RTFLAGS=-lrt
 
 # Solaris 2.5 compilation flags:
 #CFLAGS=-D_POSIX_C_SOURCE=199506 -D_REENTRANT -Xa -lpthread -g $(DEBUGFLAGS)
 #RTFLAGS=-lposix4
+
+# Linux compilation flags:
+CFLAGS=-pthread -O3 $(DEBUGFLAGS)
+RTFLAGS=-lrt
 
 SOURCES=alarm.c	alarm_cond.c	alarm_fork.c	alarm_mutex.c	\
 	alarm_thread.c	atfork.c	backoff.c	\
