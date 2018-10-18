@@ -13,70 +13,113 @@ RTFLAGS=-lrt
 BIN=./bin
 SOURCE=./src
 
-SOURCES_C=alarm.c	alarm_cond.c	alarm_fork.c	alarm_mutex.c	\
-	alarm_thread.c	atfork.c	backoff.c	\
-	barrier_main.c	cancel.c	cancel_async.c	cancel_cleanup\
-	cancel_disable.c cancel_subcontract.c	cond.c	cond_attr.c	\
-	crew.c cond_dynamic.c	cond_static.c	flock.c	getlogin.c hello.c \
-	inertia.c	lifecycle.c	mutex_attr.c	\
-	mutex_dynamic.c	mutex_static.c	once.c	pipe.c	putchar.c	\
-	rwlock_main.c	rwlock_try_main.c		\
-	sched_attr.c	sched_thread.c	semaphore_signal.c	\
-	semaphore_wait.c	server.c	sigev_thread.c	\
-	sigwait.c	susp.c	thread.c \
-	thread_attr.c	thread_error.c	trylock.c	tsd_destructor.c \
-	tsd_once.c	workq_main.c
+INC=-I$(SOURCE)
+
+SOURCES_C=\
+ch01/alarm.c \
+ch01/alarm_fork.c \
+ch01/alarm_thread.c \
+ch01/thread_error.c \
+ch02/hello.c \
+ch02/thread.c \
+ch02/lifecycle.c \
+ch03/alarm_cond.c \
+ch03/alarm_mutex.c \
+ch03/backoff.c \
+ch03/cond_dynamic.c \
+ch03/cond_static.c \
+ch03/cond.c \
+ch03/mutex_dynamic.c \
+ch03/mutex_static.c \
+ch03/trylock.c \
+ch04/crew.c \
+ch04/pipe.c \
+ch04/server.c \
+ch05/cancel_async.c \
+ch05/cancel_cleanup.c \
+ch05/cancel_disable.c \
+ch05/cancel_subcontract.c \
+ch05/cancel.c \
+ch05/cond_attr.c \
+ch05/mutex_attr.c \
+ch05/once.c \
+ch05/sched_attr.c \
+ch05/sched_thread.c \
+ch05/thread_attr.c \
+ch05/tsd_destructor.c \
+ch05/tsd_once.c \
+ch06/atfork.c \
+ch06/flock.c \
+ch06/getlogin.c \
+ch06/putchar.c \
+ch06/semaphore_signal.c \
+ch06/semaphore_wait.c \
+ch06/sigev_thread.c \
+ch06/sigwait.c \
+ch06/susp.c \
+ch07/barrier_main.c \
+ch07/rwlock_main.c \
+ch07/rwlock_try_main.c \
+ch07/workq_main.c \
+ch08/inertia.c
 
 NAMES_C=$(SOURCES_C:.c=)
-PROGRAMS_C=$(addprefix $(BIN)/c_, $(NAMES_C))
+PROGRAMS_C=$(addprefix $(BIN)/, $(NAMES_C))
 
-SOURCES_CXX=alarm_mutex.cpp	pipe.cpp	
+SOURCES_CXX=\
+ch03/alarm_mutex_cpp.cpp \
+ch04/pipe_cpp.cpp
 
 NAMES_CXX=$(SOURCES_CXX:.cpp=)
-PROGRAMS_CXX=$(addprefix $(BIN)/cpp_, $(NAMES_CXX))
+PROGRAMS_CXX=$(addprefix $(BIN)/, $(NAMES_CXX))
 
-all:	${PROGRAMS_C}	${PROGRAMS_CXX}
+all:	dirs	${PROGRAMS_C}	${PROGRAMS_CXX}
 
-$(BIN)/c_%:	$(SOURCE)/%.c
+dirs:
+	mkdir -p $(BIN)
+	mkdir -p $(BIN)/ch01 $(BIN)/ch02 $(BIN)/ch03 $(BIN)/ch04 $(BIN)/ch05
+	mkdir -p $(BIN)/ch06 $(BIN)/ch07 $(BIN)/ch08
+
+$(BIN)/%:	$(SOURCE)/%.c
 	$(CC) $(INC) $< $(CFLAGS) -o $@ $(LIBS)
 
-$(BIN)/c_alarm_mutex:	$(SOURCE)/alarm_mutex.c
+$(BIN)/ch03/alarm_mutex:	$(SOURCE)/ch03/alarm_mutex.c
 	$(CC) $(INC) $< $(CFLAGS) ${RTFLAGS} -o $@ $(LIBS)
 
-$(BIN)/c_backoff:	$(SOURCE)/backoff.c
-	$(CC) $(INC) $< $(CFLAGS) ${RTFLAGS} -o $@ $(LIBS)
- 
-$(BIN)/c_sched_attr:	$(SOURCE)/sched_attr.c
+$(BIN)/ch03/backoff:	$(SOURCE)/ch03/backoff.c
 	$(CC) $(INC) $< $(CFLAGS) ${RTFLAGS} -o $@ $(LIBS)
  
-$(BIN)/c_sched_thread:	$(SOURCE)/sched_thread.c
+$(BIN)/ch05/sched_attr:	$(SOURCE)/ch05/sched_attr.c
+	$(CC) $(INC) $< $(CFLAGS) ${RTFLAGS} -o $@ $(LIBS)
+ 
+$(BIN)/ch05/sched_thread:	$(SOURCE)/ch05/sched_thread.c
 	$(CC) $(INC) $< $(CFLAGS) ${RTFLAGS} -o $@ $(LIBS) 
 
-$(BIN)/c_semaphore_signal:	$(SOURCE)/semaphore_signal.c
+$(BIN)/ch06/semaphore_signal:	$(SOURCE)/ch06/semaphore_signal.c
 	$(CC) $(INC) $< $(CFLAGS) ${RTFLAGS} -o $@ $(LIBS) 
 
-$(BIN)/c_semaphore_wait:	$(SOURCE)/semaphore_wait.c
+$(BIN)/ch06/semaphore_wait:	$(SOURCE)/ch06/semaphore_wait.c
 	$(CC) $(INC) $< $(CFLAGS) ${RTFLAGS} -o $@ $(LIBS) 
 
-$(BIN)/c_sigev_thread:	$(SOURCE)/sigev_thread.c
+$(BIN)/ch06/sigev_thread:	$(SOURCE)/ch06/sigev_thread.c
 	$(CC) $(INC) $< $(CFLAGS) ${RTFLAGS} -o $@ $(LIBS) 
 
-$(BIN)/c_susp:
-	${CC} ${CFLAGS} ${RTFLAGS} ${LDFLAGS} -o $@ $(SOURCE)/susp.c
+$(BIN)/ch06/susp:	$(SOURCE)/ch06/susp.c
+	$(CC) $(INC) $< $(CFLAGS) ${RTFLAGS} -o $@ $(LIBS) 
 
-$(BIN)/c_rwlock_main: $(SOURCE)/rwlock.c $(SOURCE)/rwlock.h $(SOURCE)/rwlock_main.c
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $(SOURCE)/rwlock_main.c $(SOURCE)/rwlock.c
+$(BIN)/ch07/rwlock_main: $(SOURCE)/ch07/rwlock.c $(SOURCE)/ch07/rwlock.h $(SOURCE)/ch07/rwlock_main.c
+	${CC} $(INC) ${CFLAGS} ${LDFLAGS} -o $@ $(SOURCE)/ch07/rwlock_main.c $(SOURCE)/ch07/rwlock.c
 
-$(BIN)/c_rwlock_try_main: $(SOURCE)/rwlock.h $(SOURCE)/rwlock.c $(SOURCE)/rwlock_try_main.c
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $(SOURCE)/rwlock_try_main.c $(SOURCE)/rwlock.c
+$(BIN)/ch07/rwlock_try_main: $(SOURCE)/ch07/rwlock.h $(SOURCE)/ch07/rwlock.c $(SOURCE)/ch07/rwlock_try_main.c
+	${CC} $(INC) ${CFLAGS} ${LDFLAGS} -o $@ $(SOURCE)/ch07/rwlock_try_main.c $(SOURCE)/ch07/rwlock.c
 
-$(BIN)/c_barrier_main: $(SOURCE)/barrier.h $(SOURCE)/barrier.c $(SOURCE)/barrier_main.c
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $(SOURCE)/barrier_main.c $(SOURCE)/barrier.c
+$(BIN)/ch07/barrier_main: $(SOURCE)/ch07/barrier.h $(SOURCE)/ch07/barrier.c $(SOURCE)/ch07/barrier_main.c
+	${CC} $(INC) ${CFLAGS} ${LDFLAGS} -o $@ $(SOURCE)/ch07/barrier_main.c $(SOURCE)/ch07/barrier.c
 
-$(BIN)/c_workq_main: $(SOURCE)/workq.h $(SOURCE)/workq.c $(SOURCE)/workq_main.c
-	${CC} ${CFLAGS} ${RTFLAGS} ${LDFLAGS} -o $@ $(SOURCE)/workq_main.c $(SOURCE)/workq.c
+$(BIN)/ch07/workq_main: $(SOURCE)/ch07/workq.h $(SOURCE)/ch07/workq.c $(SOURCE)/ch07/workq_main.c
+	${CC} $(INC) ${CFLAGS} ${RTFLAGS} ${LDFLAGS} -o $@ $(SOURCE)/ch07/workq_main.c $(SOURCE)/ch07/workq.c
 
-$(BIN)/cpp_%:	$(SOURCE)/%.cpp
+$(BIN)/%:	$(SOURCE)/%.cpp
 	$(CXX) $(INC) $< $(CFLAGS) -o $@ $(LIBS)
 
 clean:
