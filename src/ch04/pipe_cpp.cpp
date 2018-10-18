@@ -26,7 +26,7 @@ struct stage_tag {
   bool isDataAvail;            /* Data present */
   long data;                   /* Data to process */
   pthread_t thread;            /* Thread for stage */
-  stage_tag *next;
+  stage_tag* next;
 };
 
 using stage_t = stage_tag;
@@ -50,11 +50,14 @@ using pipe_t = pipe_tag;
  * specified pipe stage. Threads use this to pass
  * along the modified data item.
  */
-int pipe_send(stage_t &stage, long data) {
+int
+pipe_send(stage_t& stage, long data)
+{
   int status;
 
   status = pthread_mutex_lock(&stage.mutex);
-  if (status != 0) return status;
+  if (status != 0)
+    return status;
 
   /*
    * If there's data in the pipe stage, wait for it
@@ -71,7 +74,7 @@ int pipe_send(stage_t &stage, long data) {
   /*
    * Send the new data
    */
-  stage.data = data;
+  stage.data        = data;
   stage.isDataAvail = true;
 
   status = pthread_cond_signal(&stage.dataIsAvail);
@@ -90,18 +93,22 @@ int pipe_send(stage_t &stage, long data) {
  * caller or the previous stage, modify the data
  * and pass it along to the next (or final) stage.
  */
-void *pipe_stage(void *arg) {
-  stage_t &stage = *(stage_t *)arg;
-  stage_t &nextStage = *stage.next;
+void*
+pipe_stage(void* arg)
+{
+  stage_t& stage     = *(stage_t*) arg;
+  stage_t& nextStage = *stage.next;
   int status;
 
   status = pthread_mutex_lock(&stage.mutex);
-  if (status != 0) err_abort(status, "Lock pipe stage");
+  if (status != 0)
+    err_abort(status, "Lock pipe stage");
 
   while (1) {
     while (!stage.isDataAvail) {
       status = pthread_cond_wait(&stage.dataIsAvail, &stage.mutex);
-      if (status != 0) err_abort(status, "Wait for previous stage");
+      if (status != 0)
+        err_abort(status, "Wait for previous stage");
     }
 
     pipe_send(nextStage, stage.data + 1);
@@ -109,7 +116,8 @@ void *pipe_stage(void *arg) {
     stage.isDataAvail = false;
 
     status = pthread_cond_signal(&stage.threadIsIdle);
-    if (status != 0) err_abort(status, "Wake next stage");
+    if (status != 0)
+      err_abort(status, "Wake next stage");
   }
 
   /*
@@ -126,20 +134,26 @@ void *pipe_stage(void *arg) {
  * data is initialized and the threads created. They'll
  * wait for data.
  */
-int pipe_create(pipe_t &pipe, size_t nStages) {
+int
+pipe_create(pipe_t& pipe, size_t nStages)
+{
   int status = pthread_mutex_init(&pipe.mutex, NULL);
-  if (status != 0) err_abort(status, "Init pipe mutex");
+  if (status != 0)
+    err_abort(status, "Init pipe mutex");
 
   pipe.stageList.resize(nStages);
   pipe.nActive = 0;
 
-  for (auto &iStage : pipe.stageList) {
+  for (auto& iStage : pipe.stageList) {
     status = pthread_mutex_init(&iStage.mutex, NULL);
-    if (status != 0) err_abort(status, "Init stage mutex");
+    if (status != 0)
+      err_abort(status, "Init stage mutex");
     status = pthread_cond_init(&iStage.dataIsAvail, NULL);
-    if (status != 0) err_abort(status, "Init dataIsAvail condition");
+    if (status != 0)
+      err_abort(status, "Init dataIsAvail condition");
     status = pthread_cond_init(&iStage.threadIsIdle, NULL);
-    if (status != 0) err_abort(status, "Init threadIsIdle condition");
+    if (status != 0)
+      err_abort(status, "Init threadIsIdle condition");
     iStage.isDataAvail = false;
   }
 
@@ -158,11 +172,12 @@ int pipe_create(pipe_t &pipe, size_t nStages) {
    */
   for (auto it = pipe.stageList.begin(), ite = --pipe.stageList.end();
        it != ite;) {
-    auto iit = it++;
+    auto iit  = it++;
     iit->next = &(*it);
 
-    status = pthread_create(&iit->thread, NULL, pipe_stage, (void *)&*iit);
-    if (status != 0) err_abort(status, "Create pipe stage");
+    status = pthread_create(&iit->thread, NULL, pipe_stage, (void*) &*iit);
+    if (status != 0)
+      err_abort(status, "Create pipe stage");
   }
   return 0;
 }
@@ -171,11 +186,14 @@ int pipe_create(pipe_t &pipe, size_t nStages) {
  * Collect the result of the pipeline. Wait for a
  * result if the pipeline hasn't produced one.
  */
-int pipe_result(pipe_t &pipe) {
+int
+pipe_result(pipe_t& pipe)
+{
   int status;
 
   status = pthread_mutex_lock(&pipe.mutex);
-  if (status != 0) err_abort(status, "Lock pipe mutex");
+  if (status != 0)
+    err_abort(status, "Lock pipe mutex");
 
   bool isEmpty = false;
   if (pipe.nActive <= 0)
@@ -184,30 +202,34 @@ int pipe_result(pipe_t &pipe) {
     pipe.nActive--;
 
   status = pthread_mutex_unlock(&pipe.mutex);
-  if (status != 0) err_abort(status, "Unlock pipe mutex");
+  if (status != 0)
+    err_abort(status, "Unlock pipe mutex");
 
   if (isEmpty) {
     printf("Pipe is empty\n");
     return 0;
   }
 
-  auto &tail = pipe.stageList.back();
+  auto& tail = pipe.stageList.back();
 
   status = pthread_mutex_lock(&tail.mutex);
-  if (status != 0) err_abort(status, "Lock pipe tail mutex");
+  if (status != 0)
+    err_abort(status, "Lock pipe tail mutex");
 
   while (!tail.isDataAvail) {
     pthread_cond_wait(&tail.dataIsAvail, &tail.mutex);
   }
 
-  long result = tail.data;
+  long result      = tail.data;
   tail.isDataAvail = false;
 
   status = pthread_cond_signal(&tail.threadIsIdle);
-  if (status != 0) err_abort(status, "Signal pipe tail threadIsIdle");
+  if (status != 0)
+    err_abort(status, "Signal pipe tail threadIsIdle");
 
   status = pthread_mutex_unlock(&tail.mutex);
-  if (status != 0) err_abort(status, "Unlock pipe tail mutex");
+  if (status != 0)
+    err_abort(status, "Unlock pipe tail mutex");
 
   printf("Result is %ld\n", result);
 
@@ -222,9 +244,12 @@ int pipe_result(pipe_t &pipe) {
  * (note that the pipe will stall when each stage fills,
  * until the result is collected).
  */
-void pipe_start(pipe_t &pipe, long value) {
+void
+pipe_start(pipe_t& pipe, long value)
+{
   int status = pthread_mutex_lock(&pipe.mutex);
-  if (status != 0) err_abort(status, "Lock pipe mutex");
+  if (status != 0)
+    err_abort(status, "Lock pipe mutex");
 
   if (pipe.nActive > pipe.stageList.size() - 1) {
     status = pthread_mutex_unlock(&pipe.mutex);
@@ -235,7 +260,8 @@ void pipe_start(pipe_t &pipe, long value) {
   pipe.nActive++;
 
   status = pthread_mutex_unlock(&pipe.mutex);
-  if (status != 0) err_abort(status, "Unlock pipe mutex");
+  if (status != 0)
+    err_abort(status, "Unlock pipe mutex");
 
   pipe_send(pipe.stageList.front(), value);
 }
@@ -243,7 +269,9 @@ void pipe_start(pipe_t &pipe, long value) {
 /*
  * The main program to "drive" the pipeline...
  */
-int main(int argc, char *argv[]) {
+int
+main(int argc, char* argv[])
+{
   pipe_t my_pipe;
   pipe_create(my_pipe, 2);
 
@@ -252,12 +280,15 @@ int main(int argc, char *argv[]) {
   char line[128];
   while (1) {
     printf("Data> ");
-    if (fgets(line, sizeof(line), stdin) == NULL) exit(0);
+    if (fgets(line, sizeof(line), stdin) == NULL)
+      exit(0);
     printf(line);
-    if (strlen(line) <= 1) continue;
+    if (strlen(line) <= 1)
+      continue;
     if (strlen(line) <= 2 && line[0] == '=') {
       pipe_result(my_pipe);
-    } else {
+    }
+    else {
       long value;
       if (sscanf(line, "%ld", &value) < 1)
         fprintf(stderr, "Enter an integer value\n");

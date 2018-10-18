@@ -39,7 +39,9 @@ std::list<alarm_t> alarm_list;
 /*
  * The alarm thread's start routine.
  */
-void *alarm_thread(void *arg) {
+void*
+alarm_thread(void* arg)
+{
   int sleep_time;
   time_t now;
   int status;
@@ -50,16 +52,18 @@ void *alarm_thread(void *arg) {
    */
   while (1) {
     status = pthread_mutex_lock(&alarm_mutex);
-    if (status != 0) err_abort(status, "Lock mutex");
+    if (status != 0)
+      err_abort(status, "Lock mutex");
 
-    now = time(NULL);
+    now        = time(NULL);
     sleep_time = 0;
 
     for (auto it = alarm_list.begin(); it != alarm_list.end();) {
       if (it->time <= now) {
         printf("(%d) %s\n", it->seconds, it->message);
         it = alarm_list.erase(it);
-      } else {
+      }
+      else {
         sleep_time = MIN(it->time - now, sleep_time);
         ++it;
       }
@@ -74,7 +78,8 @@ void *alarm_thread(void *arg) {
      * if there's no input.
      */
     status = pthread_mutex_unlock(&alarm_mutex);
-    if (status != 0) err_abort(status, "Unlock mutex");
+    if (status != 0)
+      err_abort(status, "Unlock mutex");
     if (sleep_time > 0)
       sleep(sleep_time);
     else
@@ -82,17 +87,22 @@ void *alarm_thread(void *arg) {
   }
 }
 
-int main(int argc, char *argv[]) {
+int
+main(int argc, char* argv[])
+{
   int status;
   char line[128];
   pthread_t thread;
 
   status = pthread_create(&thread, NULL, alarm_thread, NULL);
-  if (status != 0) err_abort(status, "Create alarm thread");
+  if (status != 0)
+    err_abort(status, "Create alarm thread");
   while (1) {
     printf("alarm> ");
-    if (fgets(line, sizeof(line), stdin) == NULL) exit(0);
-    if (strlen(line) <= 1) continue;
+    if (fgets(line, sizeof(line), stdin) == NULL)
+      exit(0);
+    if (strlen(line) <= 1)
+      continue;
     alarm_t alarm;
 
     /*
@@ -102,11 +112,13 @@ int main(int argc, char *argv[]) {
      */
     if (sscanf(line, "%d %64[^\n]", &alarm.seconds, alarm.message) < 2) {
       fprintf(stderr, "Bad command\n");
-    } else {
+    }
+    else {
       alarm.time = time(NULL) + alarm.seconds;
 
       status = pthread_mutex_lock(&alarm_mutex);
-      if (status != 0) err_abort(status, "Lock mutex");
+      if (status != 0)
+        err_abort(status, "Lock mutex");
 
       /*
        * Insert the new alarm into the list of alarms.
@@ -115,13 +127,16 @@ int main(int argc, char *argv[]) {
 
 #ifdef DEBUG
       printf("[list: ");
-      for (const auto &iAlarm : alarm_list)
-        printf("%d(%d)[\"%s\"] ", iAlarm.time, iAlarm.time - time(NULL),
+      for (const auto& iAlarm : alarm_list)
+        printf("%d(%d)[\"%s\"] ",
+               iAlarm.time,
+               iAlarm.time - time(NULL),
                iAlarm.message);
       printf("]\n");
 #endif
       status = pthread_mutex_unlock(&alarm_mutex);
-      if (status != 0) err_abort(status, "Unlock mutex");
+      if (status != 0)
+        err_abort(status, "Unlock mutex");
     }
   }
 }

@@ -73,7 +73,13 @@ ch04/pipe_cpp.cpp
 NAMES_CXX=$(SOURCES_CXX:.cpp=)
 PROGRAMS_CXX=$(addprefix $(BIN)/, $(NAMES_CXX))
 
-all:	dirs	${PROGRAMS_C}	${PROGRAMS_CXX}
+all:	format	dirs	${PROGRAMS_C}	${PROGRAMS_CXX}
+
+format:
+	#clang-format -i $(SOURCE)/*.c*
+	#clang-format -i $(SOURCE)/*.h*
+	clang-format -i $(SOURCE)/*/*.c*
+	clang-format -i $(SOURCE)/*/*.h*
 
 dirs:
 	mkdir -p $(BIN)
