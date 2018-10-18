@@ -67,6 +67,9 @@ NAMES_C=$(SOURCES_C:.c=)
 PROGRAMS_C=$(addprefix $(BIN)/, $(NAMES_C))
 
 SOURCES_CXX=\
+ch01/alarm_cpp.cpp \
+ch01/alarm_fork_cpp.cpp \
+ch01/alarm_thread_cpp.cpp \
 ch03/alarm_mutex_cpp.cpp \
 ch04/pipe_cpp.cpp
 
@@ -77,7 +80,7 @@ all:	format	dirs	${PROGRAMS_C}	${PROGRAMS_CXX}
 
 format:
 	#clang-format -i $(SOURCE)/*.c*
-	#clang-format -i $(SOURCE)/*.h*
+	clang-format -i $(SOURCE)/*.h*
 	clang-format -i $(SOURCE)/*/*.c*
 	clang-format -i $(SOURCE)/*/*.h*
 
