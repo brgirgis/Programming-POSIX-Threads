@@ -72,6 +72,8 @@ ch01/alarm_fork_cpp.cpp \
 ch01/alarm_thread_cpp.cpp \
 ch02/hello_cpp.cpp \
 ch02/lifecycle_cpp.cpp \
+ch03/backoff_cpp.cpp \
+ch03/trylock_cpp.cpp \
 ch03/alarm_mutex_cpp.cpp \
 ch04/pipe_cpp.cpp
 
