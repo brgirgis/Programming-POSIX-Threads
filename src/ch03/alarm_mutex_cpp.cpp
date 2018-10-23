@@ -10,11 +10,20 @@
  * least 1 second, each iteration, to ensure that the main
  * thread can lock the mutex to add new work to the list.
  */
-#include <pthread.h>
-#include <time.h>
-#include "errors.h"
 
+#include "errors.hpp"
+
+#include <algorithm>
+#include <chrono>
+#include <iostream>
 #include <list>
+#include <mutex>
+#include <sstream>
+#include <string>
+#include <thread>
+
+using ClockType    = std::chrono::high_resolution_clock;
+using DurationType = std::chrono::duration<double, std::milli>;
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
@@ -26,117 +35,109 @@
  * been on the list.
  */
 struct alarm_tag {
-  int seconds;
-  time_t time; /* seconds from EPOCH */
-  char message[64];
+  unsigned seconds = -1;
+  ClockType::time_point time;
+  std::string message;
 };
 
 using alarm_t = alarm_tag;
 
-pthread_mutex_t alarm_mutex = PTHREAD_MUTEX_INITIALIZER;
+std::mutex alarm_mutex;
 std::list<alarm_t> alarm_list;
 
 /*
  * The alarm thread's start routine.
  */
-void*
-alarm_thread(void* arg)
+void
+alarm_thread()
 {
-  int sleep_time;
-  time_t now;
-  int status;
-
   /*
    * Loop forever, processing commands. The alarm thread will
    * be disintegrated when the process exits.
    */
-  while (1) {
-    status = pthread_mutex_lock(&alarm_mutex);
-    if (status != 0)
-      err_abort(status, "Lock mutex");
+  while (true) {
+    DurationType sleep_time(0.0);
 
-    now        = time(NULL);
-    sleep_time = 0;
+    {
+      std::lock_guard<std::mutex> l(alarm_mutex);
 
-    for (auto it = alarm_list.begin(); it != alarm_list.end();) {
-      if (it->time <= now) {
-        printf("(%d) %s\n", it->seconds, it->message);
-        it = alarm_list.erase(it);
+      auto now = ClockType::now();
+
+      for (auto it = alarm_list.begin(); it != alarm_list.end();) {
+        if (it->time <= now) {
+          std::cout << it->message << std::endl;
+          it = alarm_list.erase(it);
+        }
+        else {
+          DurationType remaining = it->time - ClockType::now();
+          sleep_time             = MIN(remaining, sleep_time);
+          ++it;
+        }
       }
-      else {
-        sleep_time = MIN(it->time - now, sleep_time);
-        ++it;
-      }
+
+      /*
+       * Unlock the mutex before waiting, so that the main
+       * thread can lock it to insert a new alarm request. If
+       * the sleep_time is 0, then call sched_yield, giving
+       * the main thread a chance to run if it has been
+       * readied by user input, without delaying the message
+       * if there's no input.
+       */
     }
 
-    /*
-     * Unlock the mutex before waiting, so that the main
-     * thread can lock it to insert a new alarm request. If
-     * the sleep_time is 0, then call sched_yield, giving
-     * the main thread a chance to run if it has been
-     * readied by user input, without delaying the message
-     * if there's no input.
-     */
-    status = pthread_mutex_unlock(&alarm_mutex);
-    if (status != 0)
-      err_abort(status, "Unlock mutex");
-    if (sleep_time > 0)
-      sleep(sleep_time);
+    if (sleep_time.count() > 0)
+      std::this_thread::sleep_for(sleep_time);
     else
-      sched_yield();
+      std::this_thread::yield();
   }
 }
 
 int
 main(int argc, char* argv[])
 {
-  int status;
-  char line[128];
-  pthread_t thread;
+  std::thread t(alarm_thread);
+  t.detach();
 
-  status = pthread_create(&thread, NULL, alarm_thread, NULL);
-  if (status != 0)
-    err_abort(status, "Create alarm thread");
-  while (1) {
-    printf("alarm> ");
-    if (fgets(line, sizeof(line), stdin) == NULL)
+  std::string line;
+  while (true) {
+    std::cout << "Alarm> ";
+
+    std::getline(std::cin, line);
+    if (!std::cin.good())
       exit(0);
-    if (strlen(line) <= 1)
+
+    if (line.empty())
       continue;
+
+    std::istringstream in(line);
+
     alarm_t alarm;
 
-    /*
-     * Parse input line into seconds (%d) and a message
-     * (%64[^\n]), consisting of up to 64 characters
-     * separated from the seconds by whitespace.
-     */
-    if (sscanf(line, "%d %64[^\n]", &alarm.seconds, alarm.message) < 2) {
-      fprintf(stderr, "Bad command\n");
+    in >> alarm.seconds;
+    alarm.message = in.str();
+
+    if (alarm.seconds < 1 || alarm.message.empty()) {
+      std::cout << "Bad command\n";
+      continue;
     }
-    else {
-      alarm.time = time(NULL) + alarm.seconds;
 
-      status = pthread_mutex_lock(&alarm_mutex);
-      if (status != 0)
-        err_abort(status, "Lock mutex");
+    alarm.time = ClockType::now() + std::chrono::seconds(alarm.seconds);
 
-      /*
-       * Insert the new alarm into the list of alarms.
-       */
-      alarm_list.push_back(alarm);
+    std::lock_guard<std::mutex> l(alarm_mutex);
+
+    /*
+     * Insert the new alarm into the list of alarms.
+     */
+    alarm_list.push_back(alarm);
 
 #ifdef DEBUG
-      printf("[list: ");
-      for (const auto& iAlarm : alarm_list)
-        printf("%d(%d)[\"%s\"] ",
-               iAlarm.time,
-               iAlarm.time - time(NULL),
-               iAlarm.message);
-      printf("]\n");
-#endif
-      status = pthread_mutex_unlock(&alarm_mutex);
-      if (status != 0)
-        err_abort(status, "Unlock mutex");
+    std::cout << "[list: ";
+    for (const auto& iAlarm : alarm_list) {
+      DurationType remaining = iAlarm.time - ClockType::now();
+      std::cout << "[\"" << iAlarm.message << "\": " << remaining.count()
+                << "], ";
     }
+    std::cout << "]\n";
+#endif
   }
 }

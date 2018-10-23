@@ -75,6 +75,8 @@ ch02/lifecycle_cpp.cpp \
 ch03/backoff_cpp.cpp \
 ch03/trylock_cpp.cpp \
 ch03/alarm_mutex_cpp.cpp \
+ch03/cond_cpp.cpp \
+ch03/alarm_cond_cpp.cpp \
 ch04/pipe_cpp.cpp
 
 NAMES_CXX=$(SOURCES_CXX:.cpp=)
